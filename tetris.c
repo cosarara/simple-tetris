@@ -94,7 +94,7 @@ typedef struct {
 	int fast;
 } KeyTable;
 
-void draw(SDL_Renderer* renderer, int map[ROWS][COLS], Piece piece) {
+void draw(SDL_Renderer* renderer, int* map, Piece piece) {
 	// bg
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
@@ -107,7 +107,7 @@ void draw(SDL_Renderer* renderer, int map[ROWS][COLS], Piece piece) {
 	SDL_Rect rect_square = {0, 0, 12, 12};
 	for (int row=0; row < ROWS; row++) {
 		for (int col=0; col < COLS; col++) {
-			int color = map[row][col];
+			int color = map[row*COLS+col];
 			rect_square.y = row*14 + 1;
 			rect_square.x = col*14 + 1;
 			if (color != 0) {
@@ -144,14 +144,14 @@ int rotate(Piece* piece) {
 	return 0;
 }
 
-int colliding (const int (*map)[ROWS][COLS], const Piece* piece) {
+int colliding (const int *map, const Piece* piece) {
 	for (int row=0; row < 4; row++) {
 		for (int col=0; col < 4; col++) {
 			int mapx = piece->x + col;
 			int mapy = piece->y + row;
 			if (mapy < 0 ||
 				(piece->shape[row][col] &&
-				 ((*map)[mapy][mapx] ||
+				 (map[mapy*COLS+mapx] ||
 				   mapx < 0 || mapy >= ROWS || mapx >= COLS))) {
 				printf("collision\n");
 				return 1;
@@ -161,14 +161,14 @@ int colliding (const int (*map)[ROWS][COLS], const Piece* piece) {
 	return 0;
 }
 
-int place_on_map(int (*map)[ROWS][COLS], Piece* piece) {
+int place_on_map(int *map, Piece* piece) {
 	for (int row=0; row < 4; row++) {
 		for (int col=0; col < 4; col++) {
 			int mapx = piece->x + col;
 			int mapy = piece->y + row;
 			int tile = piece->shape[row][col];
 			if (tile) {
-				(*map)[mapy][mapx] = tile;
+				map[mapy*COLS+mapx] = tile;
 			}
 		}
 	}
@@ -180,19 +180,19 @@ void get_piece(Piece* piece) {
 	memcpy(piece->shape, shapes[piece->id], sizeof(piece->shape));
 }
 
-void drop_line(int (*map)[ROWS][COLS], int n) {
+void drop_line(int *map, int n) {
 	for (int row=n; row > 0; row--) {
 		if (row == ROWS) continue;
-		memcpy(&(*map)[row], &(*map)[row-1], sizeof((*map)[row]));
+		memcpy(&map[row*COLS], &map[(row-1)*COLS], sizeof(int)*COLS);
 	}
 }
 
-int clear_lines(int (*map)[ROWS][COLS]) {
+int clear_lines(int *map) {
 	int n_lines = 0;
 	for (int row=0; row < ROWS; row++) {
 		int good = 1;
 		for (int col=0; col < COLS; col++) {
-			if (!(*map)[row][col]) {
+			if (!map[row*COLS+col]) {
 				good = 0;
 			}
 		}
@@ -204,7 +204,7 @@ int clear_lines(int (*map)[ROWS][COLS]) {
 	return n_lines;
 }
 
-int step(int (*map)[ROWS][COLS], Piece *piece, int *cleared_lines) {
+int step(int *map, Piece *piece, int *cleared_lines) {
 	piece->y += 1;
 	if (!colliding(map, piece)) {
 		return 0;
@@ -283,7 +283,7 @@ int main() {
 	int score = 0;
 	int cleared_lines;
 
-	int map[ROWS][COLS] = {0};
+	int map[ROWS*COLS] = {0};
 	Piece piece = {{0}, (COLS/2-2), 0, 0};
 	get_piece(&piece);
 
@@ -308,13 +308,13 @@ int main() {
 			next_input_step = now() + input_step_time;
 			if (key_table.right) {
 				piece.x += 1;
-				if (colliding(&map, &piece)) {
+				if (colliding(map, &piece)) {
 					piece.x -= 1;
 				}
 			}
 			if (key_table.left) {
 				piece.x -= 1;
-				if (colliding(&map, &piece)) {
+				if (colliding(map, &piece)) {
 					piece.x += 1;
 				}
 			}
@@ -322,7 +322,7 @@ int main() {
 				Piece bak;
 				memcpy(&bak, &piece, sizeof(bak));
 				rotate(&piece);
-				if (colliding(&map, &piece)) {
+				if (colliding(map, &piece)) {
 					memcpy(&piece, &bak, sizeof(piece));
 				}
 				key_table.rot = 0; // can't hold rot
@@ -330,7 +330,7 @@ int main() {
 		}
 		if (key_table.drop || now() > next_step -
 				(key_table.fast ? (7 * step_time / 8) : 0)) {
-			int step_r = step(&map, &piece, &cleared_lines);
+			int step_r = step(map, &piece, &cleared_lines);
 			if (step_r) {
 				if (step_time > 120) {
 					step_time -= 20;
