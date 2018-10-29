@@ -123,7 +123,32 @@ void draw(SDL_Renderer* renderer, int* map, Piece piece) {
 			rect_square.y = (row + piece.y)*14 + 1;
 			rect_square.x = (col + piece.x)*14 + 1;
 			if (color != 0) {
-				SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+				switch (piece.id) {
+					case 0:
+						SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+						break;
+					case 1:
+						SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+						break;
+					case 2:
+						SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+						break;
+					case 3:
+						SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+						break;
+					case 4:
+						SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+						break;
+					case 5:
+						SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+						break;
+					case 6:
+						SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+						break;
+					case 7:
+						SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+						break;
+				}
 				SDL_RenderDrawRect(renderer, &rect_square);
 			}
 		}
